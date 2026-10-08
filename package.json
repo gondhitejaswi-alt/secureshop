@@ -1,0 +1,26 @@
+{
+  "name": "secureshop-appsec-lab",
+  "version": "2.4.0",
+  "description": "SecureShop — Build -> Attack -> Identify -> Fix -> Retest Red Team College Security Lab",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "appsec",
+    "red-team",
+    "owasp-zap",
+    "vulnerable-web-app",
+    "cybersecurity",
+    "sqli",
+    "xss",
+    "idor"
+  ],
+  "author": "Red Team Student",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2"
+  }
+}

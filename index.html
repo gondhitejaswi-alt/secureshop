@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SecureShop — E-Commerce Security Lab & Vulnerability Playground</title>
+    <meta name="description" content="A complete Red Team / Application Security training lab and fictional e-commerce store with OWASP Top 10 vulnerability demonstration and live remediation testing.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Application Styles -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="dark-theme">
+    <!-- Top Security Mode Banner -->
+    <div id="security-banner" class="mode-vulnerable">
+        <div class="banner-container">
+            <div class="mode-indicator">
+                <span class="pulse-dot"></span>
+                <span id="mode-text">CURRENT MODE: <strong>VULNERABLE 🔴 (RED TEAM LAB)</strong></span>
+            </div>
+            <div class="banner-controls">
+                <button id="toggle-mode-btn" class="btn-mode-toggle" onclick="SecureLab.toggleSecurityMode()">
+                    <i class="fa-solid fa-shield-halved"></i> Switch to Patched Mode (Blue Team)
+                </button>
+                <button class="btn-lab-toggle" onclick="SecureLab.toggleLabPanel()">
+                    <i class="fa-solid fa-terminal"></i> Red Team Console
+                </button>
+                <button class="btn-report-toggle" onclick="SecureLab.openReportModal()">
+                    <i class="fa-solid fa-file-contract"></i> Export Lab Report
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Navigation Bar -->
+    <header class="main-header">
+        <div class="header-container">
+            <a href="#" class="brand-logo" onclick="App.navigateTo('shop')">
+                <div class="logo-icon"><i class="fa-solid fa-shield-cat"></i></div>
+                <div class="logo-text">Secure<span>Shop</span> <small class="version-tag">v2.4 AppSec Edition</small></div>
+            </a>
+
+            <!-- Search Bar (Target for Search SQLi & Reflected XSS) -->
+            <div class="search-box">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="search-input" placeholder="Search gadgets, routers, keys... (e.g. ' OR 1=1)" onkeyup="App.handleSearch(event)">
+                <button class="btn-search" onclick="App.triggerSearch()">Search</button>
+            </div>
+
+            <nav class="nav-links">
+                <a href="#shop" class="nav-link active" id="nav-shop" onclick="App.navigateTo('shop')">
+                    <i class="fa-solid fa-store"></i> Shop
+                </a>
+                <a href="#lab" class="nav-link" id="nav-lab" onclick="SecureLab.toggleLabPanel()">
+                    <i class="fa-solid fa-bug"></i> Vulnerabilities <span class="badge-count" id="vuln-count">7</span>
+                </a>
+                <a href="#orders" class="nav-link" id="nav-orders" onclick="App.navigateTo('orders')">
+                    <i class="fa-solid fa-box"></i> My Orders
+                </a>
+                <a href="#admin" class="nav-link admin-only hidden" id="nav-admin" onclick="App.navigateTo('admin')">
+                    <i class="fa-solid fa-user-gear"></i> Admin Panel
+                </a>
+            </nav>
+
+            <div class="user-actions">
+                <button class="cart-btn" onclick="App.openCartModal()">
+                    <i class="fa-solid fa-cart-shopping"></i>
+                    <span class="cart-badge" id="cart-count">0</span>
+                </button>
+                
+                <div id="auth-buttons">
+                    <button class="btn-secondary" onclick="App.openAuthModal('login')">
+                        <i class="fa-solid fa-right-to-bracket"></i> Login
+                    </button>
+                </div>
+
+                <div id="user-profile-menu" class="hidden">
+                    <div class="user-avatar" id="user-avatar-btn" onclick="App.toggleUserDropdown()">
+                        <span id="user-avatar-initial">U</span>
+                    </div>
+                    <div class="user-dropdown hidden" id="user-dropdown-menu">
+                        <div class="dropdown-header">
+                            <strong id="dropdown-username">User</strong>
+                            <small id="dropdown-role">Customer</small>
+                        </div>
+                        <hr>
+                        <a href="#profile" onclick="App.navigateTo('profile')"><i class="fa-solid fa-id-card"></i> Profile & Bio</a>
+                        <a href="#orders" onclick="App.navigateTo('orders')"><i class="fa-solid fa-receipt"></i> Order History</a>
+                        <hr>
+                        <a href="#" onclick="App.logout()"><i class="fa-solid fa-power-off"></i> Logout</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="app-main">
+        <!-- Hero Announcement Section -->
+        <section class="hero-banner">
+            <div class="hero-content">
+                <span class="hero-badge"><i class="fa-solid fa-flask-vial"></i> Interactive OWASP Security Laboratory</span>
+                <h1>SecureShop: Build → Attack → Identify → Fix → Retest</h1>
+                <p>Welcome to the controlled Application Security laboratory. Test 7 full OWASP Top 10 vulnerabilities, execute live payloads, inspect security code diffs, and toggle patched mode to verify fixes.</p>
+                <div class="hero-cta">
+                    <button class="btn-primary-glow" onclick="SecureLab.toggleLabPanel()">
+                        <i class="fa-solid fa-crosshairs"></i> Launch Red Team Exploit Console
+                    </button>
+                    <button class="btn-outline" onclick="SecureLab.showGuideModal()">
+                        <i class="fa-solid fa-book-bookmark"></i> Read Lab Assignment Guide
+                    </button>
+                </div>
+            </div>
+            <div class="hero-stats">
+                <div class="stat-card">
+                    <div class="stat-icon red"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                    <div class="stat-data">
+                        <h3>7 Modules</h3>
+                        <p>OWASP Top 10 Scenarios</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon purple"><i class="fa-solid fa-code-compare"></i></div>
+                    <div class="stat-data">
+                        <h3>Dual Engine</h3>
+                        <p>Vulnerable vs Patched Code</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon cyan"><i class="fa-solid fa-file-export"></i></div>
+                    <div class="stat-data">
+                        <h3>PDF / MD Report</h3>
+                        <p>Instant College Export</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Dynamic Page Views -->
+        <!-- 1. SHOP VIEW -->
+        <div id="view-shop" class="page-view active">
+            <div class="section-header">
+                <h2><i class="fa-solid fa-microchip"></i> Hardware & Security Catalog</h2>
+                <div class="catalog-filters">
+                    <button class="filter-btn active" onclick="App.filterProducts('all')">All Items</button>
+                    <button class="filter-btn" onclick="App.filterProducts('hardware')">Hardware</button>
+                    <button class="filter-btn" onclick="App.filterProducts('keys')">Security Keys</button>
+                    <button class="filter-btn" onclick="App.filterProducts('network')">Network Tools</button>
+                </div>
+            </div>
+            
+            <div id="search-reflection-box" class="search-reflection hidden">
+                <!-- Target for Reflected XSS -->
+            </div>
+
+            <div id="product-grid" class="product-grid">
+                <!-- Dynamic Product Cards Injected Here -->
+            </div>
+        </div>
+
+        <!-- 2. PRODUCT DETAIL VIEW (XSS Target in Reviews) -->
+        <div id="view-product-detail" class="page-view hidden">
+            <button class="btn-back" onclick="App.navigateTo('shop')"><i class="fa-solid fa-arrow-left"></i> Back to Shop</button>
+            <div id="product-detail-container" class="product-detail-layout">
+                <!-- Product details & Vulnerable Stored XSS Review Section -->
+            </div>
+        </div>
+
+        <!-- 3. ORDERS VIEW (IDOR Vulnerability Target) -->
+        <div id="view-orders" class="page-view hidden">
+            <div class="section-header">
+                <h2><i class="fa-solid fa-boxes-packing"></i> Order History & Invoices</h2>
+                <div class="idor-demo-hint">
+                    <i class="fa-solid fa-circle-info"></i> <strong>IDOR Vulnerability Lab:</strong> Change the Order ID parameter below or in the API request to inspect other users' private receipts!
+                </div>
+            </div>
+            
+            <div class="idor-control-bar">
+                <label for="order-id-input">Direct Object Lookup (Order ID):</label>
+                <input type="text" id="order-id-input" value="1001" placeholder="e.g. 1001, 1002, 1003">
+                <button class="btn-action" onclick="App.fetchOrderById()">Fetch Receipt</button>
+            </div>
+
+            <div id="order-details-container" class="order-card-container">
+                <!-- Order card details injected here -->
+            </div>
+        </div>
+
+        <!-- 4. PROFILE VIEW (DOM XSS Target in Bio) -->
+        <div id="view-profile" class="page-view hidden">
+            <div class="profile-container">
+                <div class="profile-card">
+                    <div class="profile-header">
+                        <div class="profile-avatar"><i class="fa-solid fa-user-astronaut"></i></div>
+                        <div class="profile-title">
+                            <h2 id="profile-name">John Cyber</h2>
+                            <span class="user-role-badge" id="profile-role">Customer</span>
+                        </div>
+                    </div>
+                    
+                    <div class="profile-body">
+                        <div class="form-group">
+                            <label>User Email:</label>
+                            <input type="email" id="profile-email" readonly value="john@cybersec.local">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Account JWT Session Token (Stored in LocalStorage):</label>
+                            <div class="token-box">
+                                <code id="profile-jwt-display">eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...</code>
+                                <button class="btn-sm" onclick="App.copyJWT()"><i class="fa-solid fa-copy"></i> Copy</button>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Public Bio (DOM XSS Target via innerHTML):</label>
+                            <textarea id="profile-bio-input" rows="3" placeholder="Enter bio HTML (e.g. <img src=x onerror=alert('DOM_XSS')>)..."></textarea>
+                            <button class="btn-primary" onclick="App.updateProfileBio()">Save Profile Bio</button>
+                        </div>
+
+                        <div class="bio-preview-box">
+                            <label>Rendered Bio Preview:</label>
+                            <div id="profile-bio-render" class="bio-render-area">
+                                <em>No bio updated yet.</em>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. ADMIN PANEL VIEW (Sensitive Config Leak & Misconfiguration) -->
+        <div id="view-admin" class="page-view hidden">
+            <div class="section-header">
+                <h2><i class="fa-solid fa-user-shield"></i> Security Admin & API Config Dashboard</h2>
+                <span class="badge-danger"><i class="fa-solid fa-skull"></i> Unrestricted API Access (Sensitive Data Exposure)</span>
+            </div>
+
+            <div class="admin-grid">
+                <div class="admin-card">
+                    <h3>Server System Secrets & Config</h3>
+                    <p>Endpoint: <code>/api/admin/config</code></p>
+                    <button class="btn-action" onclick="App.fetchAdminConfig()">Fetch Config Payload</button>
+                    <pre><code id="admin-config-json" class="json-code">// Config payload will appear here...</code></pre>
+                </div>
+
+                <div class="admin-card">
+                    <h3>Registered User Credentials DB</h3>
+                    <button class="btn-action" onclick="App.loadUserTable()">Load All User Hashes</button>
+                    <div id="admin-users-table" class="table-responsive">
+                        <!-- Table injected here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- RED TEAM INTERACTIVE LAB DRAWER / SIDEBAR -->
+    <aside id="lab-drawer" class="lab-drawer closed">
+        <div class="drawer-header">
+            <h3><i class="fa-solid fa-terminal"></i> Red Team Security Console</h3>
+            <button class="btn-close-drawer" onclick="SecureLab.toggleLabPanel()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <div class="drawer-tabs">
+            <button class="tab-btn active" onclick="SecureLab.switchLabTab('exploits')">Exploit Playground</button>
+            <button class="tab-btn" onclick="SecureLab.switchLabTab('diff')">Code Diff Inspector</button>
+            <button class="tab-btn" onclick="SecureLab.switchLabTab('matrix')">Retest Matrix</button>
+        </div>
+
+        <div class="drawer-body">
+            <!-- TAB 1: EXPLOIT PLAYGROUND -->
+            <div id="tab-exploits" class="tab-content active">
+                <div class="vuln-selector">
+                    <label for="vuln-select"><i class="fa-solid fa-crosshairs"></i> Select OWASP Vulnerability:</label>
+                    <select id="vuln-select" onchange="SecureLab.loadVulnerabilityModule()">
+                        <option value="sqli">1. SQL Injection (SQLi) — Login Bypass & Search</option>
+                        <option value="xss_stored">2. Stored XSS — Unsanitized Product Reviews</option>
+                        <option value="xss_reflected">3. Reflected & DOM XSS — Search & Profile</option>
+                        <option value="idor">4. IDOR — Insecure Direct Object Reference</option>
+                        <option value="jwt">5. Broken Auth & Weak JWT Signing Key</option>
+                        <option value="logic">6. Business Logic — Price & Quantity Manipulation</option>
+                        <option value="exposure">7. Sensitive Data Exposure & Header Audit</option>
+                    </select>
+                </div>
+
+                <div id="vuln-info-card" class="vuln-info-card">
+                    <!-- Dynamic Info & Attack Guide injected here -->
+                </div>
+
+                <div class="exploit-runner-box">
+                    <h4><i class="fa-solid fa-bolt"></i> Auto-Payload Execution Sandbox</h4>
+                    <div class="form-group">
+                        <label>Payload String:</label>
+                        <input type="text" id="sandbox-payload" value="' OR 1=1 --">
+                    </div>
+                    <div class="action-buttons">
+                        <button class="btn-attack" onclick="SecureLab.executeSandboxAttack()">
+                            <i class="fa-solid fa-fire"></i> Execute Exploit Payload
+                        </button>
+                        <button class="btn-secondary-sm" onclick="SecureLab.resetCurrentScenario()">
+                            <i class="fa-solid fa-rotate-left"></i> Reset Scenario
+                        </button>
+                    </div>
+                </div>
+
+                <div class="execution-log-box">
+                    <h4><i class="fa-solid fa-list-check"></i> Live Execution & Terminal Log</h4>
+                    <pre id="lab-terminal-output" class="terminal-screen">> System initialized in VULNERABLE mode. Select a module to begin.</pre>
+                </div>
+            </div>
+
+            <!-- TAB 2: CODE DIFF INSPECTOR -->
+            <div id="tab-diff" class="tab-content hidden">
+                <h3>Vulnerable vs Patched Code Comparison</h3>
+                <p>Understand the root cause and line-by-line remediation for the selected module.</p>
+                <div class="code-comparison">
+                    <div class="code-box vulnerable">
+                        <h4><i class="fa-solid fa-triangle-exclamation"></i> Vulnerable Code (Red Team Target)</h4>
+                        <pre><code id="vulnerable-code-block" class="language-js">// Vulnerable code snippet...</code></pre>
+                    </div>
+                    <div class="code-box patched">
+                        <h4><i class="fa-solid fa-shield-check"></i> Secure / Patched Code (Blue Team Remediation)</h4>
+                        <pre><code id="patched-code-block" class="language-js">// Patched secure snippet...</code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: RETEST MATRIX -->
+            <div id="tab-matrix" class="tab-content hidden">
+                <h3>Build → Attack → Identify → Fix → Retest Progress</h3>
+                <p>Track your assessment results and verify fixes across all 7 OWASP modules.</p>
+                <div class="table-responsive">
+                    <table class="retest-table">
+                        <thead>
+                            <tr>
+                                <th>Vulnerability</th>
+                                <th>Severity</th>
+                                <th>Exploited Status</th>
+                                <th>Patched Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="retest-matrix-body">
+                            <!-- Matrix rows injected here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- SHOPPING CART MODAL (With Business Logic Price Tampering Playground) -->
+    <div id="cart-modal" class="modal-backdrop hidden">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-cart-shopping"></i> Shopping Cart & Checkout</h3>
+                <button class="btn-close-modal" onclick="App.closeCartModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <div id="cart-items-list" class="cart-items-list">
+                    <!-- Items injected here -->
+                </div>
+                
+                <div class="cart-tamper-playground">
+                    <div class="tamper-header">
+                        <i class="fa-solid fa-bug"></i> <strong>Business Logic Price Manipulation Lab</strong>
+                    </div>
+                    <p><small>In Vulnerable Mode, client-side unit prices and total values are trusted without server validation!</small></p>
+                    <div class="form-inline">
+                        <label>Override Total ($):</label>
+                        <input type="number" id="cart-price-tamper" value="0.01" step="0.01">
+                        <button class="btn-sm-warning" onclick="App.applyPriceTampering()">Tamper Price Payload</button>
+                    </div>
+                </div>
+
+                <div class="cart-summary">
+                    <div class="summary-row">
+                        <span>Subtotal:</span>
+                        <strong id="cart-subtotal">$0.00</strong>
+                    </div>
+                    <div class="summary-row">
+                        <span>Shipping & Handling:</span>
+                        <strong>$0.00</strong>
+                    </div>
+                    <div class="summary-row total">
+                        <span>Final Total Payable:</span>
+                        <strong id="cart-final-total">$0.00</strong>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="App.closeCartModal()">Continue Shopping</button>
+                <button class="btn-success" onclick="App.checkoutCart()"><i class="fa-solid fa-credit-card"></i> Place Order (Checkout)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- AUTH MODAL (Login & Register) -->
+    <div id="auth-modal" class="modal-backdrop hidden">
+        <div class="modal-card auth-card">
+            <div class="modal-header">
+                <h3 id="auth-modal-title"><i class="fa-solid fa-right-to-bracket"></i> Account Login</h3>
+                <button class="btn-close-modal" onclick="App.closeAuthModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="sqli-hint-box">
+                    <i class="fa-solid fa-shield-cat"></i> <strong>SQLi Lab Hint:</strong> In Vulnerable Mode, try entering <code>admin' OR '1'='1</code> as the username with any password to bypass login authentication!
+                </div>
+
+                <form id="auth-form" onsubmit="App.handleAuthSubmit(event)">
+                    <div class="form-group">
+                        <label for="auth-username">Username or Email:</label>
+                        <input type="text" id="auth-username" required placeholder="admin OR customer1">
+                    </div>
+                    <div class="form-group">
+                        <label for="auth-password">Password:</label>
+                        <input type="password" id="auth-password" required placeholder="••••••••">
+                    </div>
+                    
+                    <button type="submit" class="btn-primary-block" id="auth-submit-btn">Login to Account</button>
+                </form>
+
+                <div class="auth-switch">
+                    <p id="auth-switch-text">Don't have an account? <a href="#" onclick="App.toggleAuthMode()">Register here</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- COLLEGE REPORT GENERATOR MODAL -->
+    <div id="report-modal" class="modal-backdrop hidden">
+        <div class="modal-card report-card">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-file-contract"></i> College Red Team / AppSec Lab Report Exporter</h3>
+                <button class="btn-close-modal" onclick="App.closeModal('report-modal')"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="report-settings">
+                    <div class="form-group">
+                        <label>Student Name / Red Team Operator:</label>
+                        <input type="text" id="report-student-name" value="Security Student">
+                    </div>
+                    <div class="form-group">
+                        <label>Course / Assignment Title:</label>
+                        <input type="text" id="report-course" value="CS405 — Red Team & Application Security Assessment">
+                    </div>
+                </div>
+
+                <div class="report-preview-area">
+                    <h4>Generated Executive Summary & Assessment Report:</h4>
+                    <textarea id="report-markdown-text" rows="14" class="report-textarea" readonly></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="SecureLab.copyReportMarkdown()"><i class="fa-solid fa-copy"></i> Copy Markdown</button>
+                <button class="btn-primary" onclick="SecureLab.downloadReportFile()"><i class="fa-solid fa-download"></i> Download Report (.md)</button>
+                <button class="btn-success" onclick="window.print()"><i class="fa-solid fa-print"></i> Print to PDF</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- INSTRUCTION & ASSIGNMENT GUIDE MODAL -->
+    <div id="guide-modal" class="modal-backdrop hidden">
+        <div class="modal-card guide-card">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-book-bookmark"></i> SecureShop Assignment & Lab Guide</h3>
+                <button class="btn-close-modal" onclick="App.closeModal('guide-modal')"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body guide-body">
+                <h3>Objective & Methodology</h3>
+                <p>SecureShop is an open-source vulnerable e-commerce laboratory built specifically for application security education, OWASP ZAP scanning, and college security assignments.</p>
+
+                <h4>The 5-Step Methodology:</h4>
+                <ol>
+                    <li><strong>BUILD</strong>: Explore the storefront, catalog, cart, and authentication system.</li>
+                    <li><strong>ATTACK</strong>: Use the Red Team Console or manual browser tools to exploit vulnerabilities in <em>VULNERABLE 🔴</em> mode.</li>
+                    <li><strong>IDENTIFY</strong>: Open the Code Diff Inspector to locate exact flaw lines in code.</li>
+                    <li><strong>FIX</strong>: Click "Switch to Patched Mode" in the top bar to apply security remediations (input escaping, parameterized DB queries, rigid price verification, rigid JWT key checks).</li>
+                    <li><strong>RETEST & REPORT</strong>: Execute payloads again to confirm prevention, update the Retest Matrix, and export your college report.</li>
+                </ol>
+
+                <h4>Running OWASP ZAP / Local Backend:</h4>
+                <pre><code>npm install
+npm start
+# Server listens on http://localhost:8080</code></pre>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-primary" onclick="App.closeModal('guide-modal')">Got it, Let's Start!</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Scripts -->
+    <script src="js/mock-db.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/lab.js"></script>
+</body>
+</html>
